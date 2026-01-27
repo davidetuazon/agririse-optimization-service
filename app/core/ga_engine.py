@@ -9,10 +9,15 @@ from app.core.mutate_func import mutate
 
 from app.core.config import AGGREGATED_SOIL_WATER_RETENTION_MM
 
-if not hasattr(creator, "FitnessMulti"):
-    creator.create('FitnessMulti', base.Fitness, weights=(-1.0, +1.0))
-if not hasattr(creator, "Individual"):
-    creator.create("Individual", list, fitness=creator.FitnessMulti)
+# Only if previously defined
+if "Individual" in dir(creator):
+    del creator.Individual
+if "FitnessMin" in dir(creator):
+    del creator.FitnessMin
+
+# Then create 4-objective fitness & individual
+creator.create("FitnessMin", base.Fitness, weights=(-1.0, -1.0, -1.0, 1.0))
+creator.create("Individual", list, fitness=creator.FitnessMin)
 
 def run_ga(
     canal_input: list[dict],
@@ -43,7 +48,6 @@ def run_ga(
         evaluate_individual,
         canal_input=canal_input,
         aggregated_soil_retention_mm=AGGREGATED_SOIL_WATER_RETENTION_MM,
-        alpha=1.0
     )
 
     # mutate and crossover
@@ -59,59 +63,3 @@ def run_ga(
     stats.register('avg', np.mean, axis=0)
 
     population = toolbox.population(n=pop_size)
-    hof = tools.ParetoFront()
-
-    best_total_deficit = float("inf")
-    stall_counter = 0
-
-    for gen in range(ngen):
-        # Run one generation using eaMuPlusLambda
-        population, logbook = algorithms.eaMuPlusLambda(
-            population, toolbox,
-            mu=pop_size, lambda_=pop_size,
-            cxpb=cxpb, mutpb=mutpb,
-            ngen=1,
-            stats=stats,
-            halloffame=hof,
-            verbose=False
-        )
-        
-        current_best = min(ind.fitness.values[0] for ind in population)
-        if best_total_deficit - current_best > min_improvement:
-            best_total_deficit = current_best
-            stall_counter = 0
-        else:
-            stall_counter += 1
-
-        if stall_counter >= stall_generations:
-            print(f"Stopping early at generation {gen+1} due to stall")
-            break
-
-        # Optional: print generation summary
-        record = logbook[-1] if logbook else None
-        if record:
-            print(f"Gen {gen+1}: min={record['min']}, avg={record['avg']}")
-
-    # --- Results ---
-    print("\nPareto-optimal solutions (hall of fame):")
-    for i, ind in enumerate(hof):
-        print(f"Solution {i+1}: {np.array(ind)}")
-        print("Total allocation:", sum(ind))
-        print("Fitness (deficit+waste ↓, fairness ↑):", ind.fitness.values)
-        print()
-
-    end_time = time.time()
-    print(f"GA run completed in {end_time - start_time:.2f} seconds.")
-
-    return {
-        "pareto_front": [
-            {
-                "allocation": list(ind),
-                "fitness": ind.fitness.values,
-                "total_allocated": float(sum(ind))
-            }
-            for ind in hof
-        ],
-        "generations_run": gen + 1,
-        "runtime_seconds": end_time - start_time
-    }
