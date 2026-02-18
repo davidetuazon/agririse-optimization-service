@@ -5,10 +5,12 @@ import random
 random.seed()
 np.random.seed()
 
-def mutate(individual, sigma=1e6, indpb=0.1, total_water_available=None):
+def mutate(individual, canal_input, sigma, indpb, total_water_available=None):
     tools.mutGaussian(individual, mu=0, sigma=sigma, indpb=indpb)
-    # clamp negative allocations to zero
-    individual[:] = np.maximum(individual, 0)
+    # clamp negative allocations to per-canal floor(minimum viable water allocation)
+    min_allocs = [0.05 * canal['netWaterDemandM3'] for canal in canal_input]
+    individual[:] = np.maximum(individual, min_allocs)
+
     # re-normalize
     if total_water_available is not None:
         s = sum(individual)

@@ -45,7 +45,7 @@ def dirichlet_generate_individual(canal_input, total_water_available, alpha=None
     # final normalization
     allocations = allocations / allocations.sum() * total_water_available
 
-    return creator.Individual(allocations.flatten().tolist())
+    return creator.Individual(allocations.tolist())
 
 
 # Dirichlet-like distribution

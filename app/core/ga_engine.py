@@ -27,7 +27,7 @@ def run_ga(
     ngen=2000,
     cxpb=0.6,
     mutpb=0.4,
-    stall_generations=200,
+    stall_generations=250,
     min_improvement=1e-4,
 ):
     start_time = time.time()
@@ -47,12 +47,24 @@ def run_ga(
         'evaluate',
         evaluate_individual,
         canal_input=canal_input,
-        aggregated_soil_retention_mm=AGGREGATED_SOIL_WATER_RETENTION_MM,
     )
 
     # mutate and crossover
-    toolbox.register('mutate', mutate, sigma=1e6, indpb=0.1, total_water_available=total_water_available)
-    toolbox.register('mate', crossover, eta=15, total_water_available=total_water_available)
+    toolbox.register(
+        'mutate',
+        mutate,
+        canal_input=canal_input,
+        sigma=0.05 * total_water_available,
+        indpb=0.1,
+        total_water_available=total_water_available
+    )
+    toolbox.register(
+        'mate',
+        crossover,
+        canal_input=canal_input,
+        eta=5,
+        total_water_available=total_water_available
+    )
 
     # selection
     toolbox.register('select', tools.selNSGA2)
