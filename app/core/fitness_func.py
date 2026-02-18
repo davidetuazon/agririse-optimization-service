@@ -18,12 +18,11 @@ def evaluate_individual(individual, canal_input):
     """
     Fitness with 2 objectives:
       1. Normalized deficit (minimize)
-      2. Fairness (maximize, returned as -fairness for NSGA-II)
+      2. Fairness (maximize)
     """
     deficits = []
     fractions_fulfilled = []
 
-    total_allocated = 0
     for alloc, canal in zip(individual, canal_input):
         # water after applying loss
         effective_water = alloc * (1 - canal['lossFactorPercentage'])
@@ -34,8 +33,6 @@ def evaluate_individual(individual, canal_input):
 
         deficits.append(deficit)
         fractions_fulfilled.append(fraction)
-        
-        total_allocated += alloc
 
     # System-level metrics
     total_net_demand = sum(canal['netWaterDemandM3'] for canal in canal_input)
@@ -43,10 +40,5 @@ def evaluate_individual(individual, canal_input):
     normalized_deficit = sum(deficits) / total_net_demand
     # Fairness (Jain's index)
     fairness = jain_index(fractions_fulfilled)
-
-    # print for debugging
-    # print(f"Allocation sum: {total_allocated:.2f}, Surplus: {surplus:.2f}, Fairness: {fairness:.4f}")
-    # print(f"Normalized: deficit={normalized_deficit:.4f}, waste={normalized_waste:.4f}, surplus={normalized_surplus:.4f}, -fairness={-fairness:.4f}")
-    # print("-" * 50)
 
     return normalized_deficit, float(fairness)
