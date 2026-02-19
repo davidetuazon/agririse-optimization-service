@@ -25,7 +25,7 @@ def evaluate_individual(individual, canal_input):
 
     for alloc, canal in zip(individual, canal_input):
         # water after applying loss
-        effective_water = alloc * (1 - canal['lossFactorPercentage'])
+        effective_water = alloc * (1 - canal['lossFactorPercentage'] /100)
 
         # deficit, waste, fractions_fulfilled computations
         deficit = max(0, canal['netWaterDemandM3'] - effective_water)

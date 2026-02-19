@@ -1,13 +1,16 @@
 import numpy as np
 from deap import base, tools, creator, algorithms
 import time
+import httpx
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
+from app.core.formatters import sample_pareto_front, format_pareto_results
 from app.core.individual_func import dirichlet_generate_individual
 from app.core.fitness_func import evaluate_individual
 from app.core.crossover_func import crossover
 from app.core.mutate_func import mutate
-
-from app.core.config import AGGREGATED_SOIL_WATER_RETENTION_MM
 
 # Only if previously defined
 if "Individual" in dir(creator):
@@ -15,16 +18,17 @@ if "Individual" in dir(creator):
 if "FitnessMin" in dir(creator):
     del creator.FitnessMin
 
-# Then create 4-objective fitness & individual
-creator.create("FitnessMin", base.Fitness, weights=(-1.0, -1.0, -1.0, 1.0))
+# Then create 2-objective fitness & individual
+creator.create("FitnessMin", base.Fitness, weights=(-1.0, 1.0))
 creator.create("Individual", list, fitness=creator.FitnessMin)
 
 def run_ga(
     canal_input: list[dict],
     total_water_available: float,
+    run_id: str,
     # GA Paremeters
     pop_size=100,
-    ngen=2000,
+    ngen=500,
     cxpb=0.6,
     mutpb=0.4,
     stall_generations=250,
@@ -75,3 +79,35 @@ def run_ga(
     stats.register('avg', np.mean, axis=0)
 
     population = toolbox.population(n=pop_size)
+    hof = tools.ParetoFront()
+    
+    population, logbook = algorithms.eaMuPlusLambda(
+        population, toolbox,
+        mu=pop_size,
+        lambda_=pop_size,
+        cxpb=cxpb,
+        mutpb=mutpb,
+        ngen=ngen,
+        stats=stats,
+        halloffame=hof,
+        verbose=True
+    )
+
+    end_time = time.time()
+    execution_time = end_time - start_time
+
+    sampled = sample_pareto_front(hof, n_samples=10)
+    formatted = format_pareto_results(sampled, canal_input)
+
+    callback_url = os.getenv('BACKEND_CALLBACK_URL')
+
+    try:
+        response = httpx.post(callback_url, json={
+            'runId': run_id,
+            'status': 'completed',
+            'executionTimeSeconds': round(execution_time, 2),
+            'paretoSolutions': formatted,
+        })
+        print(f"Callback status: {response.status_code}")
+    except Exception as e:
+        print(f'Callback failed: {e}')
