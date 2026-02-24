@@ -35,79 +35,95 @@ def run_ga(
     min_improvement=1e-4,
 ):
     start_time = time.time()
-
-    toolbox = base.Toolbox()
-    # Individual Function
-    toolbox.register(
-        'individual',
-        dirichlet_generate_individual,
-        canal_input=canal_input,
-        total_water_available=total_water_available
-    )
-    toolbox.register('population', tools.initRepeat, list, toolbox.individual)
-    
-    # Fitness Function
-    toolbox.register(
-        'evaluate',
-        evaluate_individual,
-        canal_input=canal_input,
-    )
-
-    # mutate and crossover
-    toolbox.register(
-        'mutate',
-        mutate,
-        canal_input=canal_input,
-        sigma=0.05 * total_water_available,
-        indpb=0.1,
-        total_water_available=total_water_available
-    )
-    toolbox.register(
-        'mate',
-        crossover,
-        canal_input=canal_input,
-        eta=5,
-        total_water_available=total_water_available
-    )
-
-    # selection
-    toolbox.register('select', tools.selNSGA2)
-
-    # statistics
-    stats = tools.Statistics(lambda ind: ind.fitness.values)
-    stats.register('min', np.min, axis=0)
-    stats.register('avg', np.mean, axis=0)
-
-    population = toolbox.population(n=pop_size)
-    hof = tools.ParetoFront()
-    
-    population, logbook = algorithms.eaMuPlusLambda(
-        population, toolbox,
-        mu=pop_size,
-        lambda_=pop_size,
-        cxpb=cxpb,
-        mutpb=mutpb,
-        ngen=ngen,
-        stats=stats,
-        halloffame=hof,
-        verbose=True
-    )
-
-    end_time = time.time()
-    execution_time = end_time - start_time
-
-    sampled = sample_pareto_front(hof, n_samples=10)
-    formatted = format_pareto_results(sampled, canal_input)
-
     callback_url = os.getenv('BACKEND_CALLBACK_URL')
 
     try:
-        response = httpx.post(callback_url, json={
-            'runId': run_id,
-            'status': 'completed',
-            'executionTimeSeconds': round(execution_time, 2),
-            'paretoSolutions': formatted,
-        })
-        print(f"Callback status: {response.status_code}")
+        toolbox = base.Toolbox()
+        # Individual Function
+        toolbox.register(
+            'individual',
+            dirichlet_generate_individual,
+            canal_input=canal_input,
+            total_water_available=total_water_available
+        )
+        toolbox.register('population', tools.initRepeat, list, toolbox.individual)
+        
+        # Fitness Function
+        toolbox.register(
+            'evaluate',
+            evaluate_individual,
+            canal_input=canal_input,
+        )
+
+        # mutate and crossover
+        toolbox.register(
+            'mutate',
+            mutate,
+            canal_input=canal_input,
+            sigma=0.05 * total_water_available,
+            indpb=0.1,
+            total_water_available=total_water_available
+        )
+        toolbox.register(
+            'mate',
+            crossover,
+            canal_input=canal_input,
+            eta=5,
+            total_water_available=total_water_available
+        )
+
+        # selection
+        toolbox.register('select', tools.selNSGA2)
+
+        # statistics
+        stats = tools.Statistics(lambda ind: ind.fitness.values)
+        stats.register('min', np.min, axis=0)
+        stats.register('avg', np.mean, axis=0)
+
+        population = toolbox.population(n=pop_size)
+        hof = tools.ParetoFront()
+        
+        population, logbook = algorithms.eaMuPlusLambda(
+            population, toolbox,
+            mu=pop_size,
+            lambda_=pop_size,
+            cxpb=cxpb,
+            mutpb=mutpb,
+            ngen=ngen,
+            stats=stats,
+            halloffame=hof,
+            verbose=True
+        )
+
+        end_time = time.time()
+        execution_time = end_time - start_time
+
+        sampled = sample_pareto_front(hof, n_samples=10)
+        formatted = format_pareto_results(sampled, canal_input)
+
+        try:
+            response = httpx.post(callback_url, json={
+                'runId': run_id,
+                'status': 'completed',
+                'executionTimeSeconds': round(execution_time, 2),
+                'paretoSolutions': formatted,
+            })
+            # log callback status for debugging
+            print(f"Callback status: {response.status_code}")
+
+        except Exception as cb_err:
+            print(f'Failed callback after GA success: {cb_err}')
+
     except Exception as e:
-        print(f'Callback failed: {e}')
+        end_time = time.time()
+        execution_time = end_time - start_time
+        print(f'GA failed: {e}')
+        # send payload with status: failed when GA fails
+        try:
+            response = httpx.post(callback_url, json={
+                'runId': run_id,
+                'status': 'failed',
+                'executionTimeSeconds': round(execution_time, 2),
+            })
+        except Exception as cb_err:
+            print(f'Failed callback after GA failure: {cb_err}')

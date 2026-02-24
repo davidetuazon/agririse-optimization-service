@@ -22,6 +22,8 @@ def format_pareto_results(sampled_solutions, canal_input_list):
                 'coverage': canal['coverage'],
                 'areaHa': canal['tbsByDamHa'],
                 'allocatedWaterM3': round(float(ind[i]), 2),
+                'effectiveWaterM3': round(float(ind[i]) * (1 - canal['lossFactorPercentage'] / 100), 2),
+                'netWaterDemandM3': canal['netWaterDemandM3'],
             }
             allocation_vector.append(alloc)
         
