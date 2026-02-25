@@ -4,7 +4,7 @@ from typing import List, Dict
 import numpy as np
 import asyncio
 
-from app.core.ga_engine import run_ga
+from app.genetic_algorithm.core.ga_engine import run_ga
 
 router = APIRouter()
 
@@ -49,4 +49,4 @@ async def optimize_ga(payload: GAInput = Body(...), background_tasks: Background
         payload.runId,
     )
 
-    return { 'status': 'accepted', 'runId': payload.runId }
+    return { 'status': 'pending', 'runId': payload.runId }

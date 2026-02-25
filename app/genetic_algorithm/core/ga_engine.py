@@ -6,11 +6,11 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-from app.core.formatters import sample_pareto_front, format_pareto_results
-from app.core.individual_func import dirichlet_generate_individual
-from app.core.fitness_func import evaluate_individual
-from app.core.crossover_func import crossover
-from app.core.mutate_func import mutate
+from app.genetic_algorithm.core.formatters import sample_pareto_front, format_pareto_results
+from app.genetic_algorithm.core.individual_func import dirichlet_generate_individual
+from app.genetic_algorithm.core.fitness_func import evaluate_individual
+from app.genetic_algorithm.core.crossover_func import crossover
+from app.genetic_algorithm.core.mutate_func import mutate
 
 # Only if previously defined
 if "Individual" in dir(creator):

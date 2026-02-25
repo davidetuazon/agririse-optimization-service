@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.main import router as optimization_router
+from app.genetic_algorithm.routes import router as optimization_router
 
 def create_app() -> FastAPI:
     app = FastAPI(
