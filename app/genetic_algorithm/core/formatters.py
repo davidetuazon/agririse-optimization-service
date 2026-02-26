@@ -1,6 +1,6 @@
 import numpy as np
 
-def sample_pareto_front(hof, n_samples=10):
+def sample_pareto_front(hof, n_samples=20):
     solutions = list(hof)
 
     if len(solutions) <= n_samples:
