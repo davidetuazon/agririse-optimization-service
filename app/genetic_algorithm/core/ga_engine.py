@@ -35,7 +35,7 @@ def run_ga(
     min_improvement=1e-4,
 ):
     start_time = time.time()
-    callback_url = os.getenv('BACKEND_CALLBACK_URL')
+    callback_url = os.getenv('GA_CALLBACK_URL')
 
     try:
         toolbox = base.Toolbox()
@@ -102,12 +102,18 @@ def run_ga(
         formatted = format_pareto_results(sampled, canal_input)
 
         try:
-            response = httpx.post(callback_url, json={
-                'runId': run_id,
-                'status': 'completed',
-                'executionTimeSeconds': round(execution_time, 2),
-                'paretoSolutions': formatted,
-            })
+            response = httpx.post(
+                callback_url,
+                json={
+                    'runId': run_id,
+                    'status': 'completed',
+                    'executionTimeSeconds': round(execution_time, 2),
+                    'paretoSolutions': formatted,
+                },
+                headers={
+                    'x-api-key': os.getenv('API_SHARED_KEY'),
+                }
+            )
             # log callback status for debugging
             print(f"Callback status: {response.status_code}")
 
@@ -120,10 +126,16 @@ def run_ga(
         print(f'GA failed: {e}')
         # send payload with status: failed when GA fails
         try:
-            response = httpx.post(callback_url, json={
-                'runId': run_id,
-                'status': 'failed',
-                'executionTimeSeconds': round(execution_time, 2),
-            })
+            response = httpx.post(
+                callback_url,
+                json={
+                    'runId': run_id,
+                    'status': 'failed',
+                    'executionTimeSeconds': round(execution_time, 2),
+                },
+                headers={
+                    'x-api-key': os.getenv('API_SHARED_KEY'),
+                }
+            )
         except Exception as cb_err:
             print(f'Failed callback after GA failure: {cb_err}')
