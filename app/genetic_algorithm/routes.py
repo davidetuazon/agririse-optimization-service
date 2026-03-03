@@ -38,9 +38,8 @@ async def optimize_ga(payload: GAInput = Body(...), background_tasks: Background
     crop_variant: str = payload.cropVariant
     readings: list = payload.readings
 
-    canal_input: list = payload.canalInput
-    canal_input_list: list = [c.model_dump() for c in canal_input]
-    total_water_available: float = float(payload.totalSeasonalWaterSupplyM3)
+    canal_input_list = [c.model_dump() for c in payload.canalInput]
+    total_water_available = float(payload.totalSeasonalWaterSupplyM3)
 
     background_tasks.add_task(
         run_ga,
