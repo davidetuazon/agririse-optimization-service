@@ -50,17 +50,6 @@ async def optimize_ga(payload: GAInput = Body(...), background_tasks: Background
                 'reason': 'All workers are busy. Retry shortly.'
             }
         )
-    # try:
-    #     await acquire()
-    # except asyncio.TimeoutError:
-    #     return JSONResponse(
-    #         status_code=503,
-    #         content={
-    #             'status': 'failed',
-    #             'runId': payload.runId,
-    #             'reason': 'All workers are busy. Retry shortly.'
-    #         }
-    #     )
     
     background_tasks.add_task(
         run_ga,
